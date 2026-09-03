@@ -144,7 +144,7 @@ ${titleRow}    <tr style="background-color: ${brandColor}; color: ${brandTextCol
 ${headerCells}
     </tr>
   </thead>
-  <tbody style="color: ${brandTextColor};">
+  <tbody style="color: #000;">
 ${bodyRows}
   </tbody>
 </table>`);
