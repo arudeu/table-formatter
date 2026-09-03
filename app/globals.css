@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — charcoal workbench with a poker-gold accent
+   (drawn straight from the BetMGM brand gold, since the accent
+   is meant to echo the actual product domain). */
+:root {
+  --background: 40 20% 97%;
+  --foreground: 220 15% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 12%;
+
+  --primary: 220 20% 12%;
+  --primary-foreground: 40 30% 96%;
+
+  --secondary: 40 15% 92%;
+  --secondary-foreground: 220 15% 12%;
+
+  --muted: 40 12% 93%;
+  --muted-foreground: 220 8% 42%;
+
+  --accent: 42 55% 55%;
+  --accent-foreground: 220 20% 10%;
+
+  --destructive: 358 70% 48%;
+  --destructive-foreground: 40 30% 97%;
+
+  --border: 40 12% 88%;
+  --input: 40 12% 88%;
+  --ring: 42 55% 55%;
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222 20% 9%;
+  --foreground: 40 20% 94%;
+  --card: 222 18% 12%;
+  --card-foreground: 40 20% 94%;
+  --primary: 42 55% 55%;
+  --primary-foreground: 220 20% 10%;
+  --secondary: 222 16% 16%;
+  --secondary-foreground: 40 20% 94%;
+  --muted: 222 16% 16%;
+  --muted-foreground: 220 8% 62%;
+  --accent: 42 55% 55%;
+  --accent-foreground: 220 20% 10%;
+  --destructive: 358 62% 52%;
+  --destructive-foreground: 40 20% 96%;
+  --border: 222 16% 20%;
+  --input: 222 16% 20%;
+  --ring: 42 55% 55%;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-feature-settings: "cv11", "ss01";
+}
+
+.font-mono-code {
+  font-variant-ligatures: none;
+}
+
+/* Scrollbar polish for the code/preview panes */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
