@@ -23,7 +23,7 @@ export const BRANDS: Brand[] = [
     key: "borgata",
     name: "Borgata Online",
     categories: {
-      "Casino & Arcade": { color: "#d21c5d", text: "#ffffff" },
+      "Casino & Arcade": { color: "#1F00AE", text: "#ffffff" },
       Poker: { color: "#f47523", text: "#ffffff" },
       Sports: { color: "#5ac8e8", text: "#ffffff" },
     },
