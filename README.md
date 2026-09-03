@@ -83,32 +83,3 @@ lib/
   formatter.ts  Renders the final MPP / Tournament Page markup
 types/index.ts  Shared TypeScript types
 ```
-
-## Adding or editing a brand
-
-Everything about brand colors lives in `lib/brands.ts`. Each brand has
-one or more "categories" (verticals), each with a `color` and `text`
-hex value:
-
-```ts
-{
-  key: "betmgm",
-  name: "BetMGM",
-  categories: {
-    "Casino, Arcade & Sports": { color: "#d4b962", text: "#000000" },
-    Poker: { color: "#00a35b", text: "#ffffff" },
-  },
-}
-```
-
-A brand with a single `Default` category (like PartyCasino) skips the
-vertical dropdown automatically.
-
-## Adjusting the output templates
-
-The actual markup generation lives in `lib/formatter.ts` in two
-functions' worth of template literals — one branch for `"tournament"`,
-one for `"mpp"`. Both take a `ParsedTable` (extracted content) and a
-`StyleOptions` object (colors + spacing) and return the final HTML
-string. If the target templates change, that's the only file you need
-to touch.
