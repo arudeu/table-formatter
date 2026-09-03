@@ -60,13 +60,17 @@ export function TableFormatter() {
   const brand = getBrand(brandKey);
   const brandColors = brand.categories[categoryKey] ?? Object.values(brand.categories)[0];
 
-  const style: StyleOptions = {
+  const style: StyleOptions = useMemo(() => ({
     ...numericStyle,
     brandColor: colorOverride ?? brandColors.color,
     brandTextColor: textColorOverride ?? brandColors.text,
-  };
+  }), [numericStyle, colorOverride, textColorOverride, brandColors]);
 
-  const detected = useMemo(() => detectPageType(rawInput), [rawInput]);
+  const detected = useMemo(() => {
+    // DOMParser is browser-only. Avoid invoking it during Next.js SSR/prerender.
+    if (typeof window === "undefined" || !rawInput.trim()) return null;
+    return detectPageType(rawInput);
+  }, [rawInput]);
 
   const result = useMemo(() => {
     if (!rawInput.trim()) return { error: null, output: null, pageType: null as PageType | null, detectedTitle: "" };
@@ -81,7 +85,6 @@ export function TableFormatter() {
       const message = e instanceof TableFormatError ? e.message : "Couldn't parse that snippet — check that it's valid HTML.";
       return { error: message, output: null, pageType: null as PageType | null, detectedTitle: "" };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawInput, mode, inputMode, style, titleOverride, includeTitle]);
 
   function handleBrandChange(key: string) {
