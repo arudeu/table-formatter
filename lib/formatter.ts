@@ -48,8 +48,11 @@ export function generateOutput(
   } = style;
 
   if (type === "tournament") {
+    const headerCellStyle = includeTitle
+      ? `color: ${brandTextColor}; background-color: ${brandColor}`
+      : `color: ${brandTextColor}`;
     const headerCells = parsed.headerCellsHtml
-      .map((html) => `    <th style="color: ${brandTextColor}">${html}</th>`)
+      .map((html) => `    <th style="${headerCellStyle}">${html}</th>`)
       .join("\n");
     const bodyRows = parsed.bodyRowsHtml.map((r) => "    " + r).join("\n");
 
@@ -132,7 +135,7 @@ ${bodyRows}
   const titleRow = includeTitle
     ? `    <tr>
       <th style="color: ${brandTextColor}; background-color: ${brandColor};" colspan="${parsed.columnCount}">
-        <strong>${escapeHtml(title)}</strong>
+        ${escapeHtml(title)}
       </th>
     </tr>
 `

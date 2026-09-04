@@ -11,6 +11,63 @@ function stripBrandColorsDeep(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>("*").forEach(stripBrandColors);
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** Converts numeric M/D/YYYY (or M/D/YY) dates to "Month Day", dropping the year. */
+function convertSlashDates(value: string): string {
+  return value.replace(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/g, (match, m: string, d: string) => {
+    const monthIndex = parseInt(m, 10) - 1;
+    const day = parseInt(d, 10);
+    if (monthIndex < 0 || monthIndex > 11 || day < 1 || day > 31) return match;
+    return `${MONTH_NAMES[monthIndex]} ${day}`;
+  });
+}
+
+/** Normalizes any am/pm time marker to the "hh:mm AM/PM" format. */
+function normalizeTimeFormat(value: string): string {
+  return value.replace(
+    /(\d{1,2}:\d{2})\s*([AaPp])\.?\s*[Mm]\.?/g,
+    (_match, time: string, ampm: string) => `${time} ${ampm.toUpperCase()}M`
+  );
+}
+
+// Zero-width characters carry no visible width — drop them outright rather
+// than turning them into a space.
+const ZERO_WIDTH_CHARS = /[\u200B\u200C\u200D\uFEFF]/g;
+// Every other non-standard space character (non-breaking, thin, hair, en/em,
+// ideographic/"block" space, etc.) collapses down to a normal space.
+const SPECIAL_SPACE_CHARS = /[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\u180E]/g;
+
+/**
+ * Replaces non-breaking/thin/ideographic and other special space characters
+ * with a plain space, drops zero-width characters, fixes a stray "nbsp;"
+ * left behind by double-escaped HTML, and collapses runs of spaces.
+ */
+function normalizeSpaces(value: string): string {
+  value = value.replace(/&nbsp;/gi, " ").replace(/\bnbsp;/gi, " ");
+  value = value.replace(ZERO_WIDTH_CHARS, "");
+  value = value.replace(SPECIAL_SPACE_CHARS, " ");
+  value = value.replace(/[ \t]{2,}/g, " ");
+  return value;
+}
+
+/** Trims leading/trailing whitespace from a cell's visible content. */
+function trimCellEdges(cell: HTMLElement) {
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let n: Node | null;
+  while ((n = walker.nextNode())) nodes.push(n as Text);
+  if (!nodes.length) return;
+
+  const first = nodes[0];
+  first.nodeValue = (first.nodeValue ?? "").replace(/^[ \t\u00A0]+/, "");
+  const last = nodes[nodes.length - 1];
+  last.nodeValue = (last.nodeValue ?? "").replace(/[ \t\u00A0]+$/, "");
+}
+
 /** Removes Word/CMS noise while preserving meaningful formatting. */
 function cleanCell(cell: HTMLElement) {
   // Width/height can be present as attributes or inline CSS.
@@ -50,6 +107,14 @@ function cleanCell(cell: HTMLElement) {
     if (node.parentElement?.closest("sup")) continue;
 
     let value = node.nodeValue ?? "";
+    // Collapse special/zero-width spaces and stray "nbsp;" text before any
+    // other transformation runs, so later regexes see plain spaces.
+    value = normalizeSpaces(value);
+    // Numeric dates like 10/2/2026 become "October 2" — the year is dropped.
+    value = convertSlashDates(value);
+    // Time markers are normalized to "hh:mm AM/PM" regardless of how they
+    // were typed (am, a.m., A.M., pm, PM, etc.).
+    value = normalizeTimeFormat(value);
     // Word often uses an en/em dash. Also normalize a plain dash surrounded
     // by spaces to an HTML entity so the output is consistently &ndash;.
     value = value.replace(/[–—]/g, "&ndash;");
@@ -77,6 +142,9 @@ function cleanCell(cell: HTMLElement) {
     if (!meaningful && p.querySelectorAll("img,br").length === 0) p.remove();
     else p.replaceWith(...Array.from(p.childNodes));
   });
+
+  // Strip leading/trailing whitespace so "$10 " becomes "$10".
+  trimCellEdges(cell);
 }
 
 function cellIsBlank(cell: HTMLTableCellElement): boolean {
@@ -91,27 +159,29 @@ function cellIsBlank(cell: HTMLTableCellElement): boolean {
  * blank cells are merged into the first useful cell. This is especially
  * useful for Word tables where visual spacing is represented by empty cells.
  */
-/** Automatically bolds a trailing "Total" label in a table row.
- * The last non-empty cell is considered the row's ending cell, so rows with
- * trailing blank cells still get the Total label formatted correctly.
+/**
+ * Bolds every cell of the table's last row, but only when that row is a
+ * "Total" row (one of its cells reads exactly "Total"). Any other row —
+ * including a "Total" row that isn't last — is left untouched.
  */
-function boldTrailingTotal(row: HTMLTableRowElement) {
-  const cells = Array.from(row.cells);
-  for (let i = cells.length - 1; i >= 0; i--) {
-    const cell = cells[i];
-    const text = (cell.textContent ?? "").replace(/\u00a0/g, " ").trim();
-    if (!text) continue;
+function boldLastRowIfTotal(bodyRows: HTMLTableRowElement[]) {
+  const lastRow = bodyRows[bodyRows.length - 1];
+  if (!lastRow) return;
 
-    if (/^Total$/i.test(text)) {
-      const strong = cell.querySelector("strong");
-      if (!strong) {
-        const wrapper = document.createElement("strong");
-        while (cell.firstChild) wrapper.appendChild(cell.firstChild);
-        cell.appendChild(wrapper);
-      }
-    }
-    break;
-  }
+  const isTotalRow = Array.from(lastRow.cells).some((cell) => {
+    const text = (cell.textContent ?? "").replace(/\u00a0/g, " ").trim();
+    return /^Total$/i.test(text);
+  });
+  if (!isTotalRow) return;
+
+  Array.from(lastRow.cells).forEach((cell) => {
+    if (cell.querySelector("strong")) return;
+    const text = (cell.textContent ?? "").replace(/\u00a0/g, " ").trim();
+    if (!text) return;
+    const wrapper = document.createElement("strong");
+    while (cell.firstChild) wrapper.appendChild(cell.firstChild);
+    cell.appendChild(wrapper);
+  });
 }
 
 function mergeBlankCells(row: HTMLTableRowElement) {
@@ -257,7 +327,7 @@ export function parseTableSnippet(rawHtml: string, mode: DetectMode): ParseResul
   const allSourceRows = [...(columnHeaderRow ? [columnHeaderRow] : []), ...bodySourceRows];
   allSourceRows.forEach((row) => mergeBlankCells(row));
   cleanTable(table);
-  allSourceRows.forEach((row) => boldTrailingTotal(row));
+  boldLastRowIfTotal(bodySourceRows);
 
   const columnCount = Math.max(
     1,
@@ -284,8 +354,13 @@ export function parseTableSnippet(rawHtml: string, mode: DetectMode): ParseResul
   };
 }
 
-/** Parse HTML or clipboard TSV from Microsoft Word. */
-export function parseWordTable(raw: string): ParseResult {
+/**
+ * Parse HTML or clipboard TSV from Microsoft Word. Unlike parseTableSnippet,
+ * this always treats the first (non-title) row as the header — Word tables
+ * rarely mark header cells with <th>. Supports the same auto/tournament/mpp
+ * mode switch as the HTML path.
+ */
+export function parseWordTable(raw: string, mode: DetectMode = "auto"): ParseResult {
   const trimmed = raw.trim();
   if (!trimmed) throw new TableFormatError("Paste a Word table to get started.");
 
@@ -295,13 +370,27 @@ export function parseWordTable(raw: string): ParseResult {
   const table = doc.querySelector("table");
   if (!table) throw new TableFormatError("I couldn't detect a table in the Word content.");
 
+  const detected = detectPageType(html);
+  const type: PageType = mode === "auto" ? detected ?? "mpp" : mode;
+  const summaryEl = doc.querySelector("summary");
+  const summaryTitle = summaryEl?.textContent?.trim() || null;
+
   cleanTable(table);
 
   const rows = Array.from(table.rows);
   if (!rows.length) throw new TableFormatError("The Word table has no rows.");
 
-  // Treat the first row as the header and title-case its text.
-  const headerRow = rows[0];
+  // A title row looks like a single cell spanning every column — same shape
+  // as the HTML path. Word content rarely produces this, but honor it when
+  // it's there (e.g. Word content pasted as HTML with a merged header row).
+  const firstRow = rows[0];
+  const titleRow = firstRow.cells.length === 1 && firstRow.cells[0].colSpan > 1 ? firstRow : null;
+  const detectedTitle = summaryTitle || titleRow?.textContent?.trim() || null;
+
+  const headerRow = titleRow ? rows[1] : rows[0];
+  if (!headerRow) throw new TableFormatError("The Word table has no rows to format.");
+
+  // Treat the header row as the header and title-case its text.
   Array.from(headerRow.cells).forEach((cell) => {
     const th = document.createElement("th");
     th.innerHTML = cell.innerHTML;
@@ -311,23 +400,29 @@ export function parseWordTable(raw: string): ParseResult {
     cell.replaceWith(th);
   });
 
+  const bodyRows = rows.slice(titleRow ? 2 : 1);
+  const nonTitleRows = [headerRow, ...bodyRows];
+
   // Merge blank/unused cells into useful neighbors, preserving colspans.
-  rows.forEach(mergeBlankCells);
+  nonTitleRows.forEach(mergeBlankCells);
   cleanTable(table);
-  rows.forEach(boldTrailingTotal);
+  boldLastRowIfTotal(bodyRows);
 
   const headerCellsHtml = Array.from(headerRow.cells)
     .map((cell) => titleCaseHeader(cell.innerHTML))
     .filter(Boolean);
 
-  const bodyRowsHtml = rows.slice(1).map((row) => row.outerHTML.trim());
-  const columnCount = Math.max(1, headerRow.cells.length ? Array.from(headerRow.cells).reduce((n, c) => n + Math.max(1, c.colSpan), 0) : 1);
+  const bodyRowsHtml = bodyRows.map((row) => row.outerHTML.trim());
+  const columnCount = Math.max(
+    1,
+    headerRow.cells.length ? Array.from(headerRow.cells).reduce((n, c) => n + Math.max(1, c.colSpan), 0) : 1
+  );
 
   return {
-    type: "mpp",
+    type,
     table: {
-      title: "Table Title",
-      titleWasDetected: false,
+      title: detectedTitle || "Table Title",
+      titleWasDetected: Boolean(detectedTitle),
       columnCount,
       headerCellsHtml,
       bodyRowsHtml,

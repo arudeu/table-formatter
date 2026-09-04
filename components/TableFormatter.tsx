@@ -45,7 +45,7 @@ const MODE_OPTIONS: { value: DetectMode; label: string }[] = [
 
 export function TableFormatter() {
   const [rawInput, setRawInput] = useState("");
-  const [inputMode, setInputMode] = useState<"html" | "word">("html");
+  const [inputMode, setInputMode] = useState<"html" | "word">("word");
   const [mode, setMode] = useState<DetectMode>("auto");
   const [brandKey, setBrandKey] = useState("betmgm");
   const [categoryKey, setCategoryKey] = useState(
@@ -69,15 +69,20 @@ export function TableFormatter() {
   const detected = useMemo(() => {
     // DOMParser is browser-only. Avoid invoking it during Next.js SSR/prerender.
     if (typeof window === "undefined" || !rawInput.trim()) return null;
-    return detectPageType(rawInput);
-  }, [rawInput]);
+    if (inputMode === "html") return detectPageType(rawInput);
+    // Word mode: only content pasted as HTML carries the Tournament Page
+    // markers (details/summary). Plain tab-separated clipboard data has no
+    // such markup, so it falls back to MPP.
+    const trimmed = rawInput.trim();
+    return /<table[\s>]/i.test(trimmed) ? detectPageType(trimmed) : "mpp";
+  }, [rawInput, inputMode]);
 
   const result = useMemo(() => {
     if (!rawInput.trim()) return { error: null, output: null, pageType: null as PageType | null, detectedTitle: "" };
     try {
       const { type, table } =
         inputMode === "word"
-          ? parseWordTable(rawInput)
+          ? parseWordTable(rawInput, mode)
           : parseTableSnippet(rawInput, mode);
       const output = generateOutput(type, table, style, titleOverride || undefined, includeTitle);
       return { error: null, output, pageType: type, detectedTitle: table.title };
@@ -150,11 +155,11 @@ export function TableFormatter() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
-                <Button type="button" size="sm" variant={inputMode === "html" ? "default" : "outline"} onClick={() => setInputMode("html")}>
-                  HTML
-                </Button>
                 <Button type="button" size="sm" variant={inputMode === "word" ? "default" : "outline"} onClick={() => setInputMode("word")}>
                   Word Table
+                </Button>
+                <Button type="button" size="sm" variant={inputMode === "html" ? "default" : "outline"} onClick={() => setInputMode("html")}>
+                  HTML
                 </Button>
               </div>
 
@@ -166,7 +171,7 @@ export function TableFormatter() {
                 spellCheck={false}
               />
 
-              {inputMode === "html" && <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {MODE_OPTIONS.map((opt) => (
                   <Button
                     key={opt.value}
@@ -183,11 +188,11 @@ export function TableFormatter() {
                     Detected: <span className="font-medium text-foreground">{detected === "tournament" ? "Tournament Page" : "MPP"}</span>
                   </span>
                 )}
-              </div>}
+              </div>
 
               {inputMode === "word" && (
                 <p className="text-xs text-muted-foreground">
-                  Word mode automatically removes widths and empty paragraphs, cleans dashes and “Total:”, title-cases headers, converts ordinals to <code>&lt;sup&gt;</code>, and merges unused blank cells with <code>colspan</code>.
+                  Word mode automatically formats tables copied from Microsoft Word. If you have raw HTML, switch to HTML mode for more control.
                 </p>
               )}
 
