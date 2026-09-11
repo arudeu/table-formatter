@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-// The stylesheet is processed by Next.js; TypeScript does not resolve CSS files here.
-// @ts-expect-error CSS side-effect imports are handled by the Next.js build pipeline.
 import "./globals.css";
 
 const inter = Inter({
