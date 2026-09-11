@@ -19,7 +19,7 @@ const jbMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "BLUSH — Table Formatter",
   description:
-    "A simple tool to format tables for Markdown, HTML, and CSV. Paste your table and get it formatted in seconds.",
+    "A tool to format tables for Markdown, HTML, and other formats. BLUSH is a free and open-source project.",
 };
 
 export default function RootLayout({
