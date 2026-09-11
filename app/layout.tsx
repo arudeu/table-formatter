@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+// The stylesheet is processed by Next.js; TypeScript does not resolve CSS files here.
+// @ts-expect-error CSS side-effect imports are handled by the Next.js build pipeline.
 import "./globals.css";
 
 const inter = Inter({
@@ -15,9 +17,9 @@ const jbMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Table Formatter — MPP & Tournament Page Styler",
+  title: "BLUSH — Table Formatter",
   description:
-    "Paste a table snippet, pick a brand, and get pixel-matched MPP or Tournament Page markup back — instantly.",
+    "A simple tool to format tables for Markdown, HTML, and CSV. Paste your table and get it formatted in seconds.",
 };
 
 export default function RootLayout({

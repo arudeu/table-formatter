@@ -16,7 +16,7 @@ import { detectPageType, parseTableSnippet, parseWordTable } from "@/lib/parser"
 import { DEFAULT_STYLE, generateOutput } from "@/lib/formatter";
 import { getBrand, getCategoryKeys } from "@/lib/brands";
 import { DetectMode, PageType, StyleOptions, TableFormatError } from "@/types";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, Cat } from "lucide-react";
 
 const SAMPLE_INPUT = `<table class="table table-striped table-bordered">
   <thead>
@@ -117,19 +117,18 @@ export function TableFormatter() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-2 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-2 border-b pb-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <h1 className="text-lg font-semibold tracking-tight">Table Formatter</h1>
+          <div className="mb-1.5 flex items-center gap-2 cursor-pointer">
+            {/* <div className="flex h-10 w-10 items-center justify-center">
+              <Cat className="h-10 w-10" />
+            </div> */}
+            <h1 className="text-5xl font-extrabold tracking-tighter">BLUSH</h1>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Paste a table snippet, pick a brand, and get pixel-matched MPP or Tournament Page markup back.
+          <p className="text-muted-foreground">
+            The ultimate table formatter
           </p>
         </div>
-        <Badge variant="accent" className="w-fit">{brand.name}</Badge>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
